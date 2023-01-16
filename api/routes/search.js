@@ -202,21 +202,40 @@ router.get('/get_user', verify, (req, res) => {
     var found_users = []
 
     User.find(
+        // take all the name
         { "name": { $ne: null } },
         (err, usernames) => {
             if (err) {
                 return setAndSendResponse(res, responseError.CAN_NOT_CONNECT_TO_DB)
             }
 
+            // username == ""
             if (usernames.length < 1) {
                 console.log("No users to be found")
                 return setAndSendResponse(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
             }
 
+            // exacly the same
             usernames.forEach((found_user) => {
                 if (found_user["name"].toLowerCase().includes(username.toLowerCase())) {
                     found_users.push(found_user)
                 }
+            })
+
+            // only the same words and ignore the order
+            usernames = usernames.filter(item => !found_users.includes(item))
+
+            var words = username.split(" ")
+            usernames.forEach((username) => {
+                var accepted = true
+                words.forEach(word => {
+                    if (!username["name"].toLowerCase().includes(word.toLowerCase())) {
+                        accepted = false
+                        return
+                    }
+
+                })
+                if (accepted) found_users.push(username)
             })
 
             const data = found_users.map(found_user => {
