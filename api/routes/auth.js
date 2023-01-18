@@ -115,6 +115,7 @@ router.post('/signup', async (req, res) => {
       verifyCode: random4digit(),
       isVerified: false
     });
+    
     // hash the password before save to DB
     bcrypt.genSalt(10, (err, salt) => {
       if (err) return callRes(res, responseError.UNKNOWN_ERROR, err.message);
