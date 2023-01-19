@@ -446,7 +446,7 @@ router.post("/change_info_after_signup", verify, uploader.single('avatar'), asyn
     }
 
     user.name = req.query.username;
-    let promise = await uploadFile(req.file);
+    let promise = await uploadFile(req.query.file);
     user.avatar = promise;
     user.save();
     let data = {

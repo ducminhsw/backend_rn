@@ -285,7 +285,7 @@ router.post('/set_read_message', verify, async (req, res) => {
     return callRes(res, responseError.OK, 'Successfully set read message');
 });
 
-router.post('/get_list_conversation', verify, async (req, res) => {
+router.get('/get_list_conversation', verify, async (req, res) => {
     let token = req.query.token;
     if (token === undefined){
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
@@ -401,7 +401,7 @@ router.post('/get_list_conversation', verify, async (req, res) => {
     res.json({ code, message, data, numNewMessage });
 });
 
-router.post('/get_conversation', verify, async (req, res) => {
+router.get('/get_conversation', verify, async (req, res) => {
     let token = req.query.token;
     if (token === undefined){
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
