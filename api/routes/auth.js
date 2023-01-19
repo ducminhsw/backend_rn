@@ -430,12 +430,12 @@ router.post("/change_info_after_signup", verify, uploader.single('avatar'), asyn
   if (str.length >= 30) {
     return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'username too long');
   }
-
-  if (req.file) {
-    if (req.file.size > MAX_SIZE_IMAGE) {
+  console.log(req);
+  if (req.query.file) {
+    if (req.query.file.size > MAX_SIZE_IMAGE) {
       return callRes(res, responseError.FILE_SIZE_IS_TOO_BIG);
     }
-    if (req.file.mimetype != 'image/jpeg' && req.file.mimetype != 'image/jpg' && req.file.mimetype != 'image/png') {
+    if (req.query.file.mimetype != 'image/jpeg' && req.query.file.mimetype != 'image/jpg' && req.query.file.mimetype != 'image/png') {
       return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'image type');
     }
     let id = req.user.id;
