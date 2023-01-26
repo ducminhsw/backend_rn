@@ -43,14 +43,14 @@ const LCS = require('../utils/LCS');
 
 router.get('/verifyToken', verifyToken, async (req, res) => {
   try {
-    
-    const {token} = req.query;
+
+    const { token } = req.query;
     const verified = jwt.verify(token, process.env.jwtSecret);
     User.findById(verified.id, (err, user) => {
       const data = {
         id: verified.id,
         username: user.name,
-        avatar:user.avatar.url ? user.avatar.url : null,
+        avatar: user.avatar.url ? user.avatar.url : null,
         active: null
       }
       return callRes(res, responseError.OK, data);
@@ -106,7 +106,7 @@ router.post('/signup', async (req, res) => {
   }
   try {
     let user = await User.findOne({ phoneNumber });
-    if (user) return callRes(res, responseError.USER_EXISTED);
+    if (user) return callRes(res, responseError.USER_EXISTED.body);
     const newUser = new User({
       phoneNumber,
       password,
@@ -115,7 +115,7 @@ router.post('/signup', async (req, res) => {
       verifyCode: random4digit(),
       isVerified: false
     });
-    
+
     // hash the password before save to DB
     bcrypt.genSalt(10, (err, salt) => {
       if (err) return callRes(res, responseError.UNKNOWN_ERROR, err.message);
@@ -311,7 +311,14 @@ router.post('/login', async (req, res) => {
                 username: (loginUser.name) ? loginUser.name : null,
                 token: token,
                 avatar: (loginUser.avatar.url) ? loginUser.avatar.url : null,
-                active: null
+                active: null,
+                description: loginUser.description,
+                address: (loginUser.address) ? loginUser.address : "",
+                coverImage: (loginUser.coverImage.url) ? loginUser.coverImage.url : null,
+                city: (loginUser.city) ? loginUser.city : "",
+                country: (loginUser.country) ? loginUser.country : "",
+                link: (loginUser.link) ? loginUser.link : "",
+                birthday: loginUser.birthday,
               }
               return callRes(res, responseError.OK, data);
             }

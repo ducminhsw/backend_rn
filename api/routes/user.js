@@ -4,32 +4,32 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const validInput = require('../utils/validInput');
 const verify = require('../utils/verifyToken');
-const {responseError, callRes} = require('../response/error');
+const { responseError, callRes } = require('../response/error');
 const checkInput = require('../utils/validInput');
 const validTime = require('../utils/validTime');
 const User = require('../models/User');
-var multer  = require('multer');
+var multer = require('multer');
 const { Storage } = require('@google-cloud/storage');
 const MAX_SIZE_IMAGE = 4 * 1024 * 1024; // for 4MB
-const {getUserIDFromToken} = require('../utils/getUserIDFromToken');
+const { getUserIDFromToken } = require('../utils/getUserIDFromToken');
 
 
 // Create a bucket associated to Firebase storage bucket
-const {bucket} = require('./firebase');
+const { bucket } = require('./firebase');
 
 // Initiating a memory storage engine to store files as Buffer objects
 const uploader = multer({
   storage: multer.memoryStorage(),
 });
 
-router.post ('/get_user_info', async (req, res) => {
+router.post('/get_user_info', async (req, res) => {
   let { token, user_id } = req.query;
-  let tokenUser, tokenError;
+  let tokenUser;
   if (token) {
     tokenUser = await getUserIDFromToken(token);
     if (tokenUser && typeof tokenUser === 'string') return callRes(res, responseError[tokenUser]);
   }
-  if (!user_id && tokenUser ) {
+  if (!user_id && tokenUser) {
     user_id = tokenUser.id;
   }
   else {
@@ -56,7 +56,7 @@ router.post ('/get_user_info', async (req, res) => {
   try {
     user = await User.findById(user_id);
     if (!user) return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, 'user');
-    if (tokenUser && user_id != tokenUser.id && user.blockedList ) {
+    if (tokenUser && user_id != tokenUser.id && user.blockedList) {
       let index = user.blockedList.findIndex(element => element.user._id.equals(tokenUser.id));
       if (index >= 0) return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'bị block rồi em ơi, khổ quá');
       let index1 = tokenUser.blockedList.findIndex(element => element.user._id.equals(user.id));
@@ -67,7 +67,7 @@ router.post ('/get_user_info', async (req, res) => {
     data.username = user.name;
     data.created = validTime.timeToSecond(user.createdAt);
     data.description = user.description;
-    data.avatar= user.avatar.url;
+    data.avatar = user.avatar.url;
     data.cover_image = user.coverImage.url;
     data.link = user.link;
     data.address = user.address;
@@ -77,8 +77,8 @@ router.post ('/get_user_info', async (req, res) => {
     data.listing = user.friends.length;
     data.is_friend = false;
     if (tokenUser && user_id != tokenUser.id) {
-      let indexExist = user.friends.findIndex(element => element.friend._id.equals(tokenUser.id)); 
-      data.is_friend =  (indexExist >= 0) ? true : false;
+      let indexExist = user.friends.findIndex(element => element.friend._id.equals(tokenUser.id));
+      data.is_friend = (indexExist >= 0) ? true : false;
     }
     return callRes(res, responseError.OK, data);
   } catch (error) {
@@ -86,49 +86,48 @@ router.post ('/get_user_info', async (req, res) => {
   }
 });
 
-var cpUpload = uploader.fields([{ name: 'avatar'}, { name: 'cover_image'}]);
+var cpUpload = uploader.fields([{ name: 'avatar' }, { name: 'cover_image' }]);
 router.post('/set_user_info', cpUpload, verify, async (req, res) => {
-  let { username, description, address, city,country, link, birthday} = req.query;
+  let { username, description, address, city, country, link, birthday } = req.query;
   let fileAvatar, fileCoverImage, linkAvatar, linkCoverImage;
   let user, promise1, promise2, inputError;
-  if (req.files){
+  if (req.files) {
     if (req.files.avatar != undefined) {
-      if (req.files.avatar.length >1) 
+      if (req.files.avatar.length > 1)
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'avatar >= 2 files');
       fileAvatar = req.files.avatar[0];
     }
     if (req.files.cover_image != undefined) {
-      if (req.files.cover_image.length >1) 
+      if (req.files.cover_image.length > 1)
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'cover_image >= 2 files');
       fileCoverImage = req.files.cover_image[0];
     }
   }
-  if (username )
-  {
-    if( typeof username !== "string")
+  if (username) {
+    if (typeof username !== "string")
       return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'username');
     await checkInput.checkUserName(username)
       .then(result => console.log(result, ' passed!'))
       .catch(err => inputError = err)
-    if (inputError) return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'username: '+ inputError);
+    if (inputError) return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'username: ' + inputError);
   }
   if (description) {
     if (typeof description !== "string")
       return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'description');
     if (description.length > 150)
       return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'description length');
-  }  
+  }
   if (address && typeof address !== "string")
     return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'address');
   if (city && typeof city !== "string")
     return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'city');
   if (country && typeof country !== "string")
     return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'country');
-  if (link ){
-    if( typeof link !== "string" )
+  if (link) {
+    if (typeof link !== "string")
       return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'link');
-    if (!validInput.checkLink(link)) 
-      return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'link '+link+' banned');
+    if (!validInput.checkLink(link))
+      return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'link ' + link + ' banned');
   }
   try {
     try {
@@ -138,17 +137,17 @@ router.post('/set_user_info', cpUpload, verify, async (req, res) => {
     }
 
     if (fileAvatar) {
-      if (!checkSizeImage(fileAvatar)) 
+      if (!checkSizeImage(fileAvatar))
         return callRes(res, responseError.FILE_SIZE_IS_TOO_BIG, 'avatar: file quá lớn, max = 4MB');
       if (!checkTypeImage(fileAvatar))
         return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'avatar: sai định dạng');
-      if (user.avatar.filename){
+      if (user.avatar.filename) {
         try {
-          console.log('xoa avatar...');
+          console.log('Deleting avatar...');
           await deleteRemoteFile(user.avatar.filename);
-          console.log('xoa avatar xong!');
+          console.log('Deleted!');
         } catch (error) {
-          console.log('xoa avatar failed');
+          console.log('Deleting Failed');
           return callRes(res, responseError.EXCEPTION_ERROR, error.message);
         }
       }
@@ -158,13 +157,13 @@ router.post('/set_user_info', cpUpload, verify, async (req, res) => {
       } catch (error) {
         return callRes(res, responseError.UPLOAD_FILE_FAILED, error.message);
       }
-    } 
+    }
     if (fileCoverImage) {
-      if (!checkSizeImage(fileCoverImage)) 
+      if (!checkSizeImage(fileCoverImage))
         return callRes(res, responseError.FILE_SIZE_IS_TOO_BIG, 'cover_image: file quá lớn, max = 4MB');
       if (!checkTypeImage(fileCoverImage))
         return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'cover_image: sai định dạng');
-      if (user.coverImage.filename){
+      if (user.coverImage.filename) {
         try {
           console.log('xoa coverImage...');
           await deleteRemoteFile(user.coverImage.filename);
@@ -179,16 +178,16 @@ router.post('/set_user_info', cpUpload, verify, async (req, res) => {
         linkCoverImage = promise2;
       } catch (error) {
         return callRes(res, responseError.UPLOAD_FILE_FAILED, error.message);
-      }        
-    } 
+      }
+    }
     if (username) user.name = username;
     if (description) user.description = description;
     if (address) user.address = address;
     if (city) user.city = city;
     if (country) user.country = country;
     if (link) user.link = link;
-    if (linkAvatar) user.avatar= linkAvatar;
-    if (linkCoverImage) user.coverImage= linkCoverImage;
+    if (linkAvatar) user.avatar = linkAvatar;
+    if (linkCoverImage) user.coverImage = linkCoverImage;
     if (birthday) user.birthday = birthday;
     try {
       user = await user.save();
@@ -201,11 +200,11 @@ router.post('/set_user_info', cpUpload, verify, async (req, res) => {
       cover_image: user.coverImage.url,
       link: user.link,
       address: user.address,
-      city: user.city, 
-      country: user.country, 
+      city: user.city,
+      country: user.country,
       username: user.name,
       description: user.description
-    }); 
+    });
   } catch (error) {
     return callRes(res, responseError.UNKNOWN_ERROR, error.message);
   }
@@ -213,10 +212,10 @@ router.post('/set_user_info', cpUpload, verify, async (req, res) => {
 
 module.exports = router;
 
-const checkSizeImage = (image) => image.size <= MAX_SIZE_IMAGE ;
+const checkSizeImage = (image) => image.size <= MAX_SIZE_IMAGE;
 
 const checkTypeImage = (image) => {
-  const filetypes = /jpeg|jpg|png/; 
+  const filetypes = /jpeg|jpg|png/;
   return filetypes.test(image.mimetype);
 }
 
@@ -224,26 +223,26 @@ function uploadFile(file) {
   const newNameFile = new Date().toISOString() + file.originalname;
   const blob = bucket.file(newNameFile);
   const blobStream = blob.createWriteStream({
-      metadata: {
-          contentType: file.mimetype,
-      },
+    metadata: {
+      contentType: file.mimetype,
+    },
   });
   const publicUrl =
-      `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURI(blob.name)}?alt=media`;
+    `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURI(blob.name)}?alt=media`;
   return new Promise((resolve, reject) => {
 
-      blobStream.on('error', function(err) {
-          reject(err);
+    blobStream.on('error', function (err) {
+      reject(err);
+    });
+
+    blobStream.on('finish', () => {
+      resolve({
+        filename: newNameFile,
+        url: publicUrl
       });
+    });
 
-      blobStream.on('finish', () => {
-          resolve({
-              filename: newNameFile,
-              url: publicUrl
-          });
-        });
-
-      blobStream.end(file.buffer);
+    blobStream.end(file.buffer);
   });
 }
 

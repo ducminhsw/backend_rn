@@ -414,6 +414,7 @@ var cpUpload = uploader.fields([{ name: 'image' }, { name: 'video' }]);
 router.post('/add_post', cpUpload, verify, async (req, res, next) => {
     var { described, status } = req.query;
     var image, video;
+    console.log(req.files)
     if (req.files) {
         image = req.files.image;
         video = req.files.video;
@@ -421,7 +422,7 @@ router.post('/add_post', cpUpload, verify, async (req, res, next) => {
     var user = req.user;
 
     if (!described && !image && !video) {
-        console.log("Khong co described, image, video");
+        console.log("Không có described, image, video");
         return setAndSendResponse(res, responseError.PARAMETER_IS_NOT_ENOUGH);
     }
 
@@ -491,7 +492,6 @@ router.post('/add_post', cpUpload, verify, async (req, res, next) => {
             console.log("UPLOAD_FILE_FAILED");
             return setAndSendResponse(res, responseError.UPLOAD_FILE_FAILED);
         }
-
     }
 
     if (video) {

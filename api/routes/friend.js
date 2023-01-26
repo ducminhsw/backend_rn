@@ -279,7 +279,7 @@ router.post("/set_block", verify, async (req, res) => {
 router.post('/set_accept_friend', verify, async (req, res) => {
   let thisUser, sentUser;
 
-  // user_id là id của người nhận request friend
+  // user_id là id của người gửi request friend
   // is_accept : 0 là từ chối, 1 là đồng ý
   let { user_id, is_accept } = req.query;
   if (user_id === undefined || is_accept === undefined)
@@ -455,7 +455,7 @@ router.post('/get_user_friends', verify, async (req, res) => {
     await targetUser.populate({ path: 'friends.friend', select: 'friends' }).execPopulate();
     // console.log(targetUser);
 
-    let endFor = targetUser.friends.length < index + count ? targetUser.friends.length : index + count;
+    let endFor = targetUser.friends.length < (index + count) ? targetUser.friends.length : (index + count);
     for (let i = index; i < endFor; i++) {
       let x = targetUser.friends[i];
       let friendInfor = {
