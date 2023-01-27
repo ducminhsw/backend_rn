@@ -5,7 +5,7 @@ const verify = require('../utils/verifyToken');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const convertString = require('../utils/convertString');
-const {responseError, callRes} = require('../response/error');
+const { responseError, callRes } = require('../response/error');
 const checkInput = require('../utils/validInput');
 const validTime = require('../utils/validTime');
 
@@ -24,80 +24,98 @@ router.post('/create_conversation', async (req, res) => {
     secondUser = await User.findById(secondUserId);
     if (!secondUser) return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, "second user")
 
-    conversation = await Conversation.findOne({conversationId})
+    conversation = await Conversation.findOne({ conversationId })
     if (conversation) return callRes(res, responseError.ACTION_HAS_BEEN_DONE_PREVIOUSLY_BY_THIS_USER, "conversation")
 
-    const newConversation = new Conversation({
-        conversationId: conversationId,
-        firstUser: firstUser._id,
-        secondUser: secondUser._id
-    });
-    newConversation.save();
-    res.json({ message: "OK" });
+    try {
+        const newConversation = new Conversation({
+            conversationId: conversationId,
+            firstUser: firstUser._id,
+            secondUser: secondUser._id
+        });
+        newConversation.save();
+        return callRes(res, responseError.OK, "Successfully create conversation")
+    } catch (error) {
+        return callRes(res, responseError.EXCEPTION_ERROR, "unknown err")
+    }
+
 });
 //Not API
 router.post('/add_dialog', async (req, res) => {
+    let conversationId = req.query.conversationId;
+    let dialogId = req.query.dialogId;
+    let senderId = req.query.senderId;
+    let content = req.query.content;
+    if (dialogId === undefined || senderId === undefined || content === undefined) {
+        return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, "dialogId, senderId or content undefined")
+    }
+
+    let conversation, sender;
+    sender = await User.findById(senderId);
+    if (!sender) {
+        return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, "no sender found")
+    }
+
+    conversation = await Conversation.findOne({ conversationId });
+    if (!conversation) {
+        return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, "no conversation found")
+    }
+
     try {
-        let conversationId = req.query.conversationId;
-        let dialogId = req.query.dialogId;
-        let senderId = req.query.senderId;
-        let content = req.query.content;
-        let conversation, sender;
-        sender = await User.findById(senderId);
-        conversation = await Conversation.findOne({conversationId});
         conversation.dialog.push({
             dialogId: dialogId,
             sender: sender._id,
             content: content
         })
         conversation.save();
-        res.json({ message: "OK" });
-    } catch (e) {
-        res.json({ message: "error"})
+        return callRes(res, responseError.OK, "add dialog success")
+    } catch (error) {
+        return callRes(res, responseError.UNKNOWN_ERROR, "unknown err")
     }
+
 });
 
 router.post('/delete_conversation', verify, async (req, res) => {
     let token = req.query.token;
-    if (token === undefined){
+    if (token === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
     }
-    if (typeof token != "string"){
+    if (typeof token != "string") {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'token');
     }
     let id = req.user.id;
     let thisUser = await User.findById(id);
-    if (thisUser.isBlocked){
+    if (thisUser.isBlocked) {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
-    if (req.query.partner_id){
+    if (req.query.partner_id) {
         let targetConversation;
         let partnerId = req.query.partner_id;
-        try{
+        try {
             var partnerUser = await User.findById(partnerId);
-        } catch (err){
+        } catch (err) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find partner');
         }
-        if (partnerUser == null){
+        if (partnerUser == null) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find partner');
         }
-        try{
+        try {
             var targetConversation1 = await Conversation.findOne({ firstUser: partnerId });
             var targetConversation2 = await Conversation.findOne({ secondUser: partnerId });
-        }catch (err){
+        } catch (err) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'partner_id');
         }
-        if (targetConversation1){
-            if (targetConversation1.secondUser == id){
+        if (targetConversation1) {
+            if (targetConversation1.secondUser == id) {
                 targetConversation = targetConversation1;
-            }else {
+            } else {
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
-        else if (targetConversation2){
-            if (targetConversation2.firstUser == id){
+        else if (targetConversation2) {
+            if (targetConversation2.firstUser == id) {
                 targetConversation = targetConversation2;
-            }else {
+            } else {
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
@@ -106,19 +124,19 @@ router.post('/delete_conversation', verify, async (req, res) => {
         }
         await Conversation.deleteOne({ _id: targetConversation._id });
     }
-    else if (req.query.conversation_id){
+    else if (req.query.conversation_id) {
         let targetConversation;
         let conversationId = req.query.conversation_id;
         targetConversation = await Conversation.findOne({ conversationId: conversationId });
-        if (targetConversation == null){
+        if (targetConversation == null) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
         }
-        if (targetConversation.firstUser != id && targetConversation.secondUser != id){
+        if (targetConversation.firstUser != id && targetConversation.secondUser != id) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'This is not your conversation');
         }
         await Conversation.deleteOne({ _id: targetConversation._id });
     }
-    else{
+    else {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'conversation_id or partner_id');
     }
     return callRes(res, responseError.OK, 'Successfully delete conversation');
@@ -126,100 +144,100 @@ router.post('/delete_conversation', verify, async (req, res) => {
 
 router.post('/delete_message', verify, async (req, res) => {
     let token = req.query.token;
-    if (token === undefined){
+    if (token === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
     }
-    if (typeof token != "string"){
+    if (typeof token != "string") {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'token');
     }
     let id = req.user.id;
     let thisUser = await User.findById(id);
-    if (thisUser.isBlocked){
+    if (thisUser.isBlocked) {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
-    if (req.query.message_id === undefined){
+    if (req.query.message_id === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'message_id');
     }
-    if (req.query.partner_id){
+    if (req.query.partner_id) {
         let flag = false;
         let targetConversation;
         let partnerId = req.query.partner_id;
         let messageId = req.query.message_id;
-        try{
+        try {
             var partnerUser = await User.findById(partnerId);
-        } catch (err){
+        } catch (err) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find partner');
         }
-        if (partnerUser == null){
+        if (partnerUser == null) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find partner');
         }
-        try{
+        try {
             var targetConversation1 = await Conversation.findOne({ firstUser: partnerId });
             var targetConversation2 = await Conversation.findOne({ secondUser: partnerId });
-        }catch (err){
+        } catch (err) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'partner_id');
         }
-        if (targetConversation1){
-            if (targetConversation1.secondUser == id){
+        if (targetConversation1) {
+            if (targetConversation1.secondUser == id) {
                 targetConversation = targetConversation1;
-            }else {
+            } else {
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
-        else if (targetConversation2){
-            if (targetConversation2.firstUser == id){
+        else if (targetConversation2) {
+            if (targetConversation2.firstUser == id) {
                 targetConversation = targetConversation2;
-            }else {
+            } else {
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
         else {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
         }
-        for (dialog in targetConversation.dialog){
-            if (targetConversation.dialog[dialog].dialogId == messageId){
-                if (targetConversation.dialog[dialog].sender == id){
+        for (dialog in targetConversation.dialog) {
+            if (targetConversation.dialog[dialog].dialogId == messageId) {
+                if (targetConversation.dialog[dialog].sender == id) {
                     targetConversation.dialog.splice(dialog, 1);
                     flag = true;
                     break;
                 }
-                else{
+                else {
                     return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'This is not your message');
                 }
             }
         }
-        if (!flag){
+        if (!flag) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find message');
         }
         targetConversation = await targetConversation.save();
     }
-    else if (req.query.conversation_id){
+    else if (req.query.conversation_id) {
         let flag = false;
         let targetConversation;
         let conversationId = req.query.conversation_id;
         let messageId = req.query.message_id;
         targetConversation = await Conversation.findOne({ conversationId: conversationId });
-        if (targetConversation == null){
+        if (targetConversation == null) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
         }
-        for (dialog in targetConversation.dialog){
-            if (targetConversation.dialog[dialog].dialogId == messageId){
-                if (targetConversation.dialog[dialog].sender == id){
+        for (dialog in targetConversation.dialog) {
+            if (targetConversation.dialog[dialog].dialogId == messageId) {
+                if (targetConversation.dialog[dialog].sender == id) {
                     targetConversation.dialog.splice(dialog, 1);
                     flag = true;
                     break;
                 }
-                else{
+                else {
                     return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'This is not your message');
                 }
             }
         }
-        if (!flag){
+        if (!flag) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find message');
         }
         targetConversation = await targetConversation.save();
     }
-    else{
+    else {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'conversation_id or partner_id');
     }
     return callRes(res, responseError.OK, 'Successfully delete message');
@@ -227,73 +245,73 @@ router.post('/delete_message', verify, async (req, res) => {
 
 router.post('/set_read_message', verify, async (req, res) => {
     let token = req.query.token;
-    if (token === undefined){
+    if (token === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
     }
-    if (typeof token != "string"){
+    if (typeof token != "string") {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'token');
     }
     let id = req.user.id;
     let thisUser = await User.findById(id);
-    if (thisUser.isBlocked){
+    if (thisUser.isBlocked) {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
-    if (req.query.partner_id){
+    if (req.query.partner_id) {
         let targetConversation;
         let partnerId = req.query.partner_id;
-        try{
+        try {
             var partnerUser = await User.findById(partnerId);
-        } catch (err){
+        } catch (err) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find partner');
         }
-        if (partnerUser == null){
+        if (partnerUser == null) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find partner');
         }
-        try{
+        try {
             var targetConversation1 = await Conversation.findOne({ firstUser: partnerId });
             var targetConversation2 = await Conversation.findOne({ secondUser: partnerId });
-        }catch (err){
+        } catch (err) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'partner_id');
         }
-        if (targetConversation1){
-            if (targetConversation1.secondUser == id){
+        if (targetConversation1) {
+            if (targetConversation1.secondUser == id) {
                 targetConversation = targetConversation1;
-            }else {
+            } else {
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
-        else if (targetConversation2){
-            if (targetConversation2.firstUser == id){
+        else if (targetConversation2) {
+            if (targetConversation2.firstUser == id) {
                 targetConversation = targetConversation2;
-            }else {
+            } else {
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
         else {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
         }
-        for (dialog in targetConversation.dialog){
-            targetConversation.dialog[dialog].unread = "0"  ;
+        for (dialog in targetConversation.dialog) {
+            targetConversation.dialog[dialog].unread = "0";
         }
         targetConversation = await targetConversation.save();
     }
-    else if (req.query.conversation_id){
+    else if (req.query.conversation_id) {
         let targetConversation;
         let conversationId = req.query.conversation_id;
         targetConversation = await Conversation.findOne({ conversationId: conversationId });
-        if (targetConversation == null){
+        if (targetConversation == null) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
         }
-        if (targetConversation.firstUser != id && targetConversation.secondUser != id){
+        if (targetConversation.firstUser != id && targetConversation.secondUser != id) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'This is not your conversation');
         }
-        for (dialog in targetConversation.dialog){
+        for (dialog in targetConversation.dialog) {
             targetConversation.dialog[dialog].unread = "0";
             await targetConversation.save();
         }
         targetConversation = await targetConversation.save();
     }
-    else{
+    else {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'conversation_id or partner_id');
     }
     return callRes(res, responseError.OK, 'Successfully set read message');
@@ -301,69 +319,68 @@ router.post('/set_read_message', verify, async (req, res) => {
 
 router.post('/get_list_conversation', verify, async (req, res) => {
     let token = req.query.token;
-    if (token === undefined){
+    if (token === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
     }
-    if (typeof token != "string"){
+    if (typeof token != "string") {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'token');
     }
     let code, message;
     let id = req.user.id;
     let thisUser = await User.findById(id);
-    if (thisUser.isBlocked){
+    if (thisUser.isBlocked) {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
     let { index, count } = req.query;
-    if (index === undefined){
+    if (index === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'index');
     }
-    if (count === undefined){
+    if (count === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'count');
     }
-    if (typeof index != "string"){
+    if (typeof index != "string") {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
     }
-    if (typeof count != "string"){
+    if (typeof count != "string") {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
     }
     let isNumIndex = /^\d+$/.test(index);
-    if (!isNumIndex){
+    if (!isNumIndex) {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
     }
     let isNumCount = /^\d+$/.test(count);
-    if (!isNumCount){
+    if (!isNumCount) {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
     }
     index = parseInt(req.query.index);
     count = parseInt(req.query.count);
-    if (index < 0){
+    if (index < 0) {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
     }
-    if (count < 0){
+    if (count < 0) {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
     }
-    if (count == 0){
+    if (count == 0) {
         return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
     }
     var numNewMessage = 0;
     let data = [];
-    if (req.query.index === undefined || req.query.count === undefined){
+    if (req.query.index === undefined || req.query.count === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'index and count');
     }
     var conversations = [];
     let conversationFirst = await Conversation.find({ firstUser: id });
     let conversationSecond = await Conversation.find({ secondUser: id });
-    for (conversation in conversationFirst){
+    for (conversation in conversationFirst) {
         conversations.push(conversationFirst[conversation]);
     }
-    for (conversation in conversationSecond){
+    for (conversation in conversationSecond) {
         conversations.push(conversationSecond[conversation]);
     }
-    //console.log(conversations);
     let endFor = conversations.length < index + count ? conversations.length : index + count;
-    for (let i = index; i < endFor; i++){
+    for (let i = index; i < endFor; i++) {
         let x = conversations[i];
-        if (x.conversationId == null || x.conversationId == ""){
+        if (x.conversationId == null || x.conversationId == "") {
             continue;
         }
         let conversationInfo = {
@@ -380,10 +397,10 @@ router.post('/get_list_conversation', verify, async (req, res) => {
             }
         }
         let partner, lastDialog;
-        if (x.firstUser == id){
+        if (x.firstUser == id) {
             partner = await User.findById(x.secondUser);
         }
-        else{
+        else {
             partner = await User.findById(x.firstUser);
         }
         lastDialog = x.dialog[x.dialog.length - 1];
@@ -394,14 +411,14 @@ router.post('/get_list_conversation', verify, async (req, res) => {
         if (lastDialog != undefined) {
             conversationInfo.lastMessage.message = lastDialog.content;
             conversationInfo.lastMessage.created = lastDialog.created;
-            if (lastDialog.unread === undefined || lastDialog.unread == null){
+            if (lastDialog.unread === undefined || lastDialog.unread == null) {
                 conversationInfo.lastMessage.unread = "1";
             }
-            else{
+            else {
                 conversationInfo.lastMessage.unread = "0";
             }
-            for (dialog in x.dialog){
-                if (x.dialog[dialog].unread == "1"){
+            for (dialog in x.dialog) {
+                if (x.dialog[dialog].unread == "1") {
                     numNewMessage += 1;
                     break;
                 }
@@ -409,7 +426,7 @@ router.post('/get_list_conversation', verify, async (req, res) => {
         }
         data.push(conversationInfo);
     }
-    if (data.length == 0){
+    if (data.length == 0) {
         return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
     }
     code = "1000";
@@ -419,71 +436,71 @@ router.post('/get_list_conversation', verify, async (req, res) => {
 
 router.post('/get_conversation', verify, async (req, res) => {
     let token = req.query.token;
-    if (token === undefined){
+    if (token === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
     }
-    if (typeof token != "string"){
+    if (typeof token != "string") {
         return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'token');
     }
     let detail;
     let code, message;
     let id = req.user.id;
     let thisUser = await User.findById(id);
-    if (thisUser.isBlocked){
+    if (thisUser.isBlocked) {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
     let data = {
         conversation: []
     }
-    if (req.query.index === undefined || req.query.count === undefined){
+    if (req.query.index === undefined || req.query.count === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'index and count');
     }
-    if (req.query.partner_id){
+    if (req.query.partner_id) {
         let targetConversation;
         let index = req.query.index;
         let count = req.query.count;
-        if (typeof index != "string"){
+        if (typeof index != "string") {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
-        if (typeof count != "string"){
+        if (typeof count != "string") {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         let isNumIndex = /^\d+$/.test(index);
-        if (!isNumIndex){
+        if (!isNumIndex) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         let isNumCount = /^\d+$/.test(count);
-        if (!isNumCount){
+        if (!isNumCount) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         index = parseInt(req.query.index);
         count = parseInt(req.query.count);
-        if (index < 0){
+        if (index < 0) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
-        if (count < 0){
+        if (count < 0) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
-        if (count == 0){
+        if (count == 0) {
             return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
         }
         let partnerId = req.query.partner_id;
-        try{
+        try {
             var targetConversation1 = await Conversation.findOne({ firstUser: partnerId });
             var targetConversation2 = await Conversation.findOne({ secondUser: partnerId });
-        }catch (err){
+        } catch (err) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'partner_id');
         }
-        if (targetConversation1){
-            if (targetConversation1.secondUser == id){
+        if (targetConversation1) {
+            if (targetConversation1.secondUser == id) {
                 targetConversation = targetConversation1;
             }
             else {
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
-        else if (targetConversation2){
-            if (targetConversation2.firstUser == id){
+        else if (targetConversation2) {
+            if (targetConversation2.firstUser == id) {
                 targetConversation = targetConversation2;
             }
             else {
@@ -494,7 +511,7 @@ router.post('/get_conversation', verify, async (req, res) => {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
         }
         let endFor = targetConversation.dialog.length < index + count ? targetConversation.dialog.length : index + count;
-        for (let i = index; i < endFor; i++){
+        for (let i = index; i < endFor; i++) {
             let x = targetConversation.dialog[i];
             let dialogInfo = {
                 message: null,
@@ -509,7 +526,7 @@ router.post('/get_conversation', verify, async (req, res) => {
             }
             let targetUser;
             targetUser = await User.findById(x.sender);
-            if (x.content === undefined || x.dialogId === undefined || x.created === undefined || x.content == '' || x.dialogId == '' || x.created == ''){
+            if (x.content === undefined || x.dialogId === undefined || x.created === undefined || x.content == '' || x.dialogId == '' || x.created == '') {
                 continue;
             }
             dialogInfo.message = x.content;
@@ -526,38 +543,38 @@ router.post('/get_conversation', verify, async (req, res) => {
         let targetConversation;
         let index = req.query.index;
         let count = req.query.count;
-        if (typeof index != "string"){
+        if (typeof index != "string") {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
-        if (typeof count != "string"){
+        if (typeof count != "string") {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         let isNumIndex = /^\d+$/.test(index);
-        if (!isNumIndex){
+        if (!isNumIndex) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         let isNumCount = /^\d+$/.test(count);
-        if (!isNumCount){
+        if (!isNumCount) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         index = parseInt(req.query.index);
         count = parseInt(req.query.count);
-        if (index < 0){
+        if (index < 0) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
-        if (count < 0){
+        if (count < 0) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
-        if (count == 0){
+        if (count == 0) {
             return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
         }
         let conversationId = req.query.conversation_id;
         targetConversation = await Conversation.findOne({ conversationId: conversationId });
-        if (!targetConversation){
+        if (!targetConversation) {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
         }
         let endFor = targetConversation.dialog.length < index + count ? targetConversation.dialog.length : index + count;
-        for (let i = index; i < endFor; i++){
+        for (let i = index; i < endFor; i++) {
             let x = targetConversation.dialog[i];
             let dialogInfo = {
                 message: null,
@@ -582,10 +599,10 @@ router.post('/get_conversation', verify, async (req, res) => {
             data.conversation.push(dialogInfo);
         }
     }
-    else{
+    else {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'conversation_id or partner_id');
     }
-    if (data.conversation.length == 0){
+    if (data.conversation.length == 0) {
         return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
     }
     code = "1000";
