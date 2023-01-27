@@ -37,20 +37,24 @@ router.post('/create_conversation', async (req, res) => {
 });
 //Not API
 router.post('/add_dialog', async (req, res) => {
-    let conversationId = req.query.conversationId;
-    let dialogId = req.query.dialogId;
-    let senderId = req.query.senderId;
-    let content = req.query.content;
-    let conversation, sender;
-    sender = await User.findById(senderId);
-    conversation = await Conversation.findOne({conversationId});
-    conversation.dialog.push({
-        dialogId: dialogId,
-        sender: sender._id,
-        content: content
-    })
-    conversation.save();
-    res.json({ message: "OK" });
+    try {
+        let conversationId = req.query.conversationId;
+        let dialogId = req.query.dialogId;
+        let senderId = req.query.senderId;
+        let content = req.query.content;
+        let conversation, sender;
+        sender = await User.findById(senderId);
+        conversation = await Conversation.findOne({conversationId});
+        conversation.dialog.push({
+            dialogId: dialogId,
+            sender: sender._id,
+            content: content
+        })
+        conversation.save();
+        res.json({ message: "OK" });
+    } catch (e) {
+        res.json({ message: "error"})
+    }
 });
 
 router.post('/delete_conversation', verify, async (req, res) => {
@@ -387,18 +391,20 @@ router.post('/get_list_conversation', verify, async (req, res) => {
         conversationInfo.partner.id = partner._id;
         conversationInfo.partner.username = partner.name;
         conversationInfo.partner.avatar = partner.avatar.url;
-        conversationInfo.lastMessage.message = lastDialog.content;
-        conversationInfo.lastMessage.created = lastDialog.created;
-        if (lastDialog.unread === undefined || lastDialog.unread == null){
-            conversationInfo.lastMessage.unread = "1";
-        }
-        else{
-            conversationInfo.lastMessage.unread = "0";
-        }
-        for (dialog in x.dialog){
-            if (x.dialog[dialog].unread == "1"){
-                numNewMessage += 1;
-                break;
+        if (lastDialog != undefined) {
+            conversationInfo.lastMessage.message = lastDialog.content;
+            conversationInfo.lastMessage.created = lastDialog.created;
+            if (lastDialog.unread === undefined || lastDialog.unread == null){
+                conversationInfo.lastMessage.unread = "1";
+            }
+            else{
+                conversationInfo.lastMessage.unread = "0";
+            }
+            for (dialog in x.dialog){
+                if (x.dialog[dialog].unread == "1"){
+                    numNewMessage += 1;
+                    break;
+                }
             }
         }
         data.push(conversationInfo);
