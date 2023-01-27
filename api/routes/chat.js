@@ -36,7 +36,7 @@ router.post('/add_dialog', async (req, res) => {
     conversation = await Conversation.findOne({conversationId});
     conversation.dialog.push({
         dialogId: dialogId,
-        sender: senderId,
+        sender: sender._id,
         content: content
     })
     conversation.save();
