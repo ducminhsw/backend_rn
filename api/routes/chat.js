@@ -14,9 +14,19 @@ router.post('/create_conversation', async (req, res) => {
     let conversationId = req.query.conversationId;
     let firstUserId = req.query.firstUser;
     let secondUserId = req.query.secondUser;
-    let firstUser, secondUser;
+    if (conversationId === undefined || firstUserId === undefined || secondUserId === undefined) {
+        return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, "conversationId, userIds")
+    }
+    let firstUser, secondUser, conversation;
     firstUser = await User.findById(firstUserId);
+    if (!firstUser) return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, "first user")
+
     secondUser = await User.findById(secondUserId);
+    if (!secondUser) return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, "second user")
+
+    conversation = await Conversation.findOne({conversationId})
+    if (conversation) return callRes(res, responseError.ACTION_HAS_BEEN_DONE_PREVIOUSLY_BY_THIS_USER, "conversation")
+
     const newConversation = new Conversation({
         conversationId: conversationId,
         firstUser: firstUser._id,
