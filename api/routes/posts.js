@@ -273,6 +273,72 @@ router.post('/get_list_posts', async (req, res) => {
     });
 });
 
+router.post('/get_list_user_posts', async (req, res) => {
+    var { token, user_id } = req.query;
+    var data;
+
+    // PARAMETER_TYPE_IS_INVALID
+    if ((token && typeof token !== "string") || (user_id && typeof user_id !== "string")) {
+        console.log("PARAMETER_TYPE_IS_INVALID");
+        return setAndSendResponse(res, responseError.PARAMETER_TYPE_IS_INVALID);
+    }
+
+    // user_posts = User.findById(user_id)
+    var user, posts;
+    try {
+        if (token) {
+            user = await getUserIDFromToken(token);
+            if (user && typeof user == "string") {
+                return setAndSendResponse(res, responseError[user]);
+            }
+        }
+        posts = await Post.find({ "author": user_id }).populate('author').sort("-created");
+
+    } catch (err) {
+        return setAndSendResponse(res, responseError.CAN_NOT_CONNECT_TO_DB);
+    }
+
+    // NO_DATA_OR_END_OF_LIST_DATA
+    // if (posts.length < 1) {
+    //     console.log('No have posts');
+    //     return setAndSendResponse(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
+    // }
+
+    data = {
+        posts: posts.map(post => {
+            return {
+                id: post._id,
+                image: post.image.length > 0 ? post.image.map(image => { return { id: image._id, url: image.url }; }) : null,
+                video: post.video.url ? {
+                    url: post.video.url,
+                    thumb: null
+                } : null,
+                described: post.described ? post.described : null,
+                created: post.created.toString(),
+                modified: post.modified.toString(),
+                like: post.likedUser.length.toString(),
+                comment: post.comments.length.toString(),
+                is_liked: user ? (post.likedUser.includes(user._id) ? "1" : "0") : "0",
+                is_blocked: is_blocked(user, post.author),
+                can_comment: "1",
+                can_edit: can_edit(user, post.author),
+                state: post.status ? post.status : null,
+                author: post.author ? {
+                    id: post.author._id,
+                    username: post.author.name ? post.author.name : null,
+                    avatar: post.author.avatar.url ? post.author.avatar.url : null
+                } : null,
+            }
+        })
+    }
+
+    res.status(200).send({
+        code: "1000",
+        message: "OK",
+        data: data
+    });
+});
+
 // @route  POST it4788/post/get_post
 // @desc   get post
 // @access Private
