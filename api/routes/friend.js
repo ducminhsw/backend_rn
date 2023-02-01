@@ -464,18 +464,15 @@ router.post('/get_user_friends', verify, async (req, res) => {
         coverImage: null,
         avatar: null, // link avatar
         same_friends: 0, //number of same friends
-        created: null //time start friend between this guy and targetUser
+        created: null, //time start friend between this guy and targetUser
+        friendState: null
       }
-      friendInfor.id = x.friend._id.toString();
-      console.log(x.friend._id.toString())
-      friendInfor.username = x.friend.name;
-      console.log(x.friend.name)
-      friendInfor.coverImage = x.friend.coverImage.url;
-      console.log(x.friend.coverImage.url)
-      friendInfor.avatar = x.friend.avatar.url;
-      console.log(x.friend.avatar.url)
-      friendInfor.created = validTime.timeToSecond(x.createdAt);
-      console.log(validTime.timeToSecond(x.createdAt))
+      friendInfor.id = x.friend._id.toString()
+      friendInfor.username = x.friend.name
+      friendInfor.coverImage = x.friend.coverImage.url
+      friendInfor.avatar = x.friend.avatar.url
+      friendInfor.created = validTime.timeToSecond(x.createdAt)
+      friendInfor.friendState = "2"
 
       if (!thisUser._id.equals(x.friend._id))
         if (thisUser.friends.length > 0 && x.friend.friends.length > 0) {
