@@ -13,7 +13,6 @@ const { Storage } = require('@google-cloud/storage');
 const MAX_SIZE_IMAGE = 4 * 1024 * 1024; // for 4MB
 const { getUserIDFromToken } = require('../utils/getUserIDFromToken');
 
-
 // Create a bucket associated to Firebase storage bucket
 const { bucket } = require('./firebase');
 
@@ -61,7 +60,6 @@ router.post('/get_user_info', async (req, res) => {
       if (index >= 0) return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'bị block rồi em ơi, khổ quá');
       let index1 = tokenUser.blockedList.findIndex(element => element.user._id.equals(user.id));
       if (index1 >= 0) return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'bị block rồi em ơi, khổ quá');
-
     }
     data.id = user._id.toString();
     data.username = user.name;
@@ -75,10 +73,22 @@ router.post('/get_user_info', async (req, res) => {
     data.country = user.country;
     data.birthday = validTime.timeToSecond(user.birthday);
     data.listing = user.friends.length;
-    data.is_friend = false;
+    data.is_friend = 0;
     if (tokenUser && user_id != tokenUser.id) {
+      // đã là bạn hay chưa?
       let indexExist = user.friends.findIndex(element => element.friend._id.equals(tokenUser.id));
-      data.is_friend = (indexExist >= 0) ? true : false;
+      data.is_friend = (indexExist >= 0) ? 3 : 0;
+      if (data.is_friend == 3) return callRes(res, responseError.OK, data);
+      
+      // mình gửi lời mời
+      let indexRequestSent = user.friendRequestReceived.findIndex(element => element.fromUser._id.equals(tokenUser.id))
+      data.is_friend = (indexRequestSent >= 0) ? 1 : 0
+      if (data.is_friend == 1) return callRes(res, responseError.OK, data);
+
+      // họ gửi lời mời
+      let indexReceive = tokenUser.friendRequestReceived.findIndex(element => element.fromUser._id.equals(user.id))
+      data.is_friend = (indexReceive >= 0) ? 2 : 0
+      if (data.is_friend == 2) return callRes(res, responseError.OK, data);
     }
     return callRes(res, responseError.OK, data);
   } catch (error) {

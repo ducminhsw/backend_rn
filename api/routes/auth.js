@@ -306,6 +306,7 @@ router.post('/login', async (req, res) => {
             { expiresIn: 86400 },
             (err, token) => {
               if (err) return callRes(res, responseError.UNKNOWN_ERROR, err.message);
+              
               let data = {
                 id: loginUser.id,
                 username: (loginUser.name) ? loginUser.name : null,
@@ -319,8 +320,6 @@ router.post('/login', async (req, res) => {
                 country: (loginUser.country) ? loginUser.country : "",
                 link: (loginUser.link) ? loginUser.link : "",
                 birthday: loginUser.birthday,
-                friend_list: loginUser.friends ? loginUser.friends : [],
-                block_list: loginUser.blockedList ? loginUser.blockedList : []
               }
               return callRes(res, responseError.OK, data);
             }
