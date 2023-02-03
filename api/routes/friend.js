@@ -88,7 +88,7 @@ router.post('/delete_friend', verify, async (req, res) => {
     return callRes(res, responseError.PARAMETER_TYPE_IS_INVALID, 'user_id');
 
   let id = req.user.id;
-  let targetUser;
+  let targetUser, thisUser;
 
   if (user_id == id) {
     return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'user_id');
@@ -100,15 +100,14 @@ router.post('/delete_friend', verify, async (req, res) => {
       if (!thisUser) return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, 'This User');
 
       let indexExist = thisUser.friends.findIndex(element => element.friend._id.equals(targetUser._id));
-      if (indexExist == 0)
+      if (indexExist < 0)
         return callRes(res, responseError.ACTION_HAS_BEEN_DONE_PREVIOUSLY_BY_THIS_USER, 'Not friend yet');
-
       let delete_index = thisUser.friends.findIndex(element => element.friend._id.equals(targetUser._id))
-      thisUser.friend.splice(delete_index, 1);
+      thisUser.friends.splice(delete_index, 1);
       thisUser.save();
 
       let delete_index2 = targetUser.friends.findIndex(element => element.friend._id.equals(thisUser._id))
-      targetUser.friend.splice(delete_index2, 1);
+      targetUser.friends.splice(delete_index2, 1);
       targetUser.save();
       return callRes(res, responseError.OK, 'Successfully unfriend this user');
     } catch (error) {
@@ -464,7 +463,7 @@ router.post('/get_user_friends', verify, async (req, res) => {
       friendInfor.username = x.friend.name;
       friendInfor.avatar = x.friend.avatar.url;
       friendInfor.created = validTime.timeToSecond(x.createdAt);
-      if (id === x.friend._id.toString()){
+      if (id === x.friend._id.toString()) {
         friendInfor.isFriendStatus = -1;
       }
       else if (thisUser.friendRequestSent?.find(o => o.toString() === x.friend._id.toString())) friendInfor.isFriendStatus = 1;
