@@ -1,4 +1,5 @@
 node_modules
 api/config/myprivatekey.json
+api/routes/firebase.js
 # .env
 tmp/
