@@ -462,35 +462,28 @@ router.post('/get_conversation', verify, async (req, res) => {
         let index = req.query.index;
         let count = req.query.count;
         if (typeof index != "string") {
-            console.log("index1")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         if (typeof count != "string") {
-            console.log("index2")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         let isNumIndex = /^\d+$/.test(index);
         if (!isNumIndex) {
-            console.log("index3")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         let isNumCount = /^\d+$/.test(count);
         if (!isNumCount) {
-            console.log("index4")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         index = parseInt(req.query.index);
         count = parseInt(req.query.count);
         if (index < 0) {
-            console.log("index5")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         if (count < 0) {
-            console.log("index6")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         if (count == 0) {
-            console.log("index7")
             return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
         }
         let partnerId = req.query.partner_id;
