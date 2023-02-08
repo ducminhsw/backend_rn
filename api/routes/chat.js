@@ -436,6 +436,7 @@ router.post('/get_list_conversation', verify, async (req, res) => {
 
 router.post('/get_conversation', verify, async (req, res) => {
     let token = req.query.token;
+    console.log("get_conversation")
     if (token === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
     }
@@ -446,6 +447,7 @@ router.post('/get_conversation', verify, async (req, res) => {
     let code, message;
     let id = req.user.id;
     let thisUser = await User.findById(id);
+    console.log(thisUser._id)
     if (thisUser.isBlocked) {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
@@ -460,35 +462,45 @@ router.post('/get_conversation', verify, async (req, res) => {
         let index = req.query.index;
         let count = req.query.count;
         if (typeof index != "string") {
+            console.log("index1")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         if (typeof count != "string") {
+            console.log("index2")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         let isNumIndex = /^\d+$/.test(index);
         if (!isNumIndex) {
+            console.log("index3")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         let isNumCount = /^\d+$/.test(count);
         if (!isNumCount) {
+            console.log("index4")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         index = parseInt(req.query.index);
         count = parseInt(req.query.count);
         if (index < 0) {
+            console.log("index5")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'index');
         }
         if (count < 0) {
+            console.log("index6")
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'count');
         }
         if (count == 0) {
+            console.log("index7")
             return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
         }
         let partnerId = req.query.partner_id;
+        let targetConversation1, targetConversation2
+        console.log(partnerId)
         try {
-            var targetConversation1 = await Conversation.findOne({ firstUser: partnerId });
-            var targetConversation2 = await Conversation.findOne({ secondUser: partnerId });
+            targetConversation1 = await Conversation.findOne({ firstUser: partnerId });
+            targetConversation2 = await Conversation.findOne({ secondUser: partnerId });
         } catch (err) {
+            console.log(err)
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'partner_id');
         }
         if (targetConversation1) {
@@ -496,6 +508,7 @@ router.post('/get_conversation', verify, async (req, res) => {
                 targetConversation = targetConversation1;
             }
             else {
+                console.log('Cannot find conversation')
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
