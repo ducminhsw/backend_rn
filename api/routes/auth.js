@@ -436,7 +436,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/change_password", verifyToken, async (req, res) => {
-  const { token, password, new_password } = req.query;
+  const { password, new_password } = req.query;
 
   if (!password || !new_password) {
     return callRes(
