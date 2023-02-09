@@ -452,6 +452,7 @@ router.post('/get_conversation', verify, async (req, res) => {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
     let data = {
+        conversationId: "",
         conversation: []
     }
     if (req.query.index === undefined || req.query.count === undefined) {
@@ -488,7 +489,6 @@ router.post('/get_conversation', verify, async (req, res) => {
         }
         let partnerId = req.query.partner_id;
         let targetConversation1, targetConversation2
-        console.log(partnerId)
         try {
             targetConversation1 = await Conversation.findOne({ firstUser: partnerId });
             targetConversation2 = await Conversation.findOne({ secondUser: partnerId });
@@ -544,6 +544,7 @@ router.post('/get_conversation', verify, async (req, res) => {
             dialogInfo.sender.avatar = targetUser.avatar.url;
             data.conversation.push(dialogInfo);
         }
+        data.conversationId = targetConversation.conversationId
     }
     else if (req.query.conversation_id) {
         let targetConversation;
@@ -604,6 +605,7 @@ router.post('/get_conversation', verify, async (req, res) => {
             dialogInfo.sender.avatar = targetUser.avatar.url;
             data.conversation.push(dialogInfo);
         }
+        data.conversationId = targetConversation.conversationId
     }
     else {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'conversation_id or partner_id');
