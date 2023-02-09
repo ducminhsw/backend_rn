@@ -137,7 +137,7 @@ router.post("/signup", async (req, res) => {
       name,
       birthday: new Date(birthday),
       verifyCode: random4digit(),
-      isVerified: false,
+      isVerified: true
     });
 
     // hash the password before save to DB
