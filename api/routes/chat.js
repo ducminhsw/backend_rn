@@ -436,7 +436,7 @@ router.post('/get_list_conversation', verify, async (req, res) => {
 
 router.post('/get_conversation', verify, async (req, res) => {
     let token = req.query.token;
-    console.log("get_conversation")
+    // console.log("get_conversation")
     if (token === undefined) {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'token');
     }
@@ -447,7 +447,7 @@ router.post('/get_conversation', verify, async (req, res) => {
     let code, message;
     let id = req.user.id;
     let thisUser = await User.findById(id);
-    console.log(thisUser._id)
+    // console.log("this user_id" + thisUser._id)
     if (thisUser.isBlocked) {
         return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
     }
@@ -497,19 +497,23 @@ router.post('/get_conversation', verify, async (req, res) => {
             return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'partner_id');
         }
         if (targetConversation1) {
+            //console.log("target conversation 1" + targetConversation1.secondUser)
             if (targetConversation1.secondUser == id) {
+                //console.log("found target conversation 1")
                 targetConversation = targetConversation1;
             }
             else {
-                console.log('Cannot find conversation')
+                //console.log('Cannot find conversation 1')
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
         else if (targetConversation2) {
             if (targetConversation2.firstUser == id) {
+                //console.log("found target conversation 2")
                 targetConversation = targetConversation2;
             }
             else {
+                //console.log('Cannot find conversation 2')
                 return callRes(res, responseError.PARAMETER_VALUE_IS_INVALID, 'Cannot find conversation');
             }
         }
@@ -610,9 +614,9 @@ router.post('/get_conversation', verify, async (req, res) => {
     else {
         return callRes(res, responseError.PARAMETER_IS_NOT_ENOUGH, 'conversation_id or partner_id');
     }
-    if (data.conversation.length == 0) {
-        return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
-    }
+    // if (data.conversation.length == 0) {
+    //     return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
+    // }
     code = "1000";
     message = "OK";
     res.json({ code, message, data });

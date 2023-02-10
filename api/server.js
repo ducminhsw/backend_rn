@@ -6,6 +6,10 @@ const multer = require('multer');
 const {responseError, callRes} = require('./response/error');
 
 const app = express()
+const appChat = express()
+const http = require("http")
+const { Server } = require("socket.io")
+appChat.use(cors())
 
 // use express.json as middleware
 app.use('/public', express.static(__dirname + '/webview'))
@@ -24,6 +28,7 @@ mongoose.connect(url,
 app.get('/it4788/finishedsignup', (req, res) => {
     res.sendFile(__dirname + '/webview/finishSignup.html');
 });
+
 // use Routes
 app.use('/it4788/auth', require('./routes/auth'));
 app.use('/it4788/friend', require('./routes/friend'));
@@ -47,3 +52,29 @@ app.use(function (err, req, res, next) {
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server is running on port ${port}`))
+
+// chat server
+const server = http.createServer(appChat)
+const io = new Server(server)
+
+io.on("connection", (socket) => {
+    console.log(`User connected ${socket.id}`)
+
+    socket.on("join_room", (data) => {
+        socket.join(data)
+        console.log(`User with ID: ${socket.id} joined room: ${data}`)
+    })
+
+    socket.on("send_message", (data) => {
+        console.log(data)
+        socket.to(data.room).emit("receive_message", data)
+    })
+
+    socket.on("disconnect", () => {
+        console.log("User disconnected", socket.id)
+    })
+})
+
+server.listen(3001, () => {
+    console.log("SERVER CHAT RUNNING " + 3001)
+})
