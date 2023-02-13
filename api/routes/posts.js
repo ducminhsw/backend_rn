@@ -376,15 +376,9 @@ router.post("/get_list_posts", async (req, res) => {
     return setAndSendResponse(res, responseError.CAN_NOT_CONNECT_TO_DB);
   }
 
-  // NO_DATA_OR_END_OF_LIST_DATA
-  //   if (posts.length < 1) {
-  //     console.log("No have posts");
-  //     return setAndSendResponse(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
-  //   }
-
   let index_last_id = posts.findIndex((element) => {
     return element._id == last_id;
-  });
+  })
   if (index_last_id == -1) {
     last_id = posts[0]._id;
     index_last_id = 0;

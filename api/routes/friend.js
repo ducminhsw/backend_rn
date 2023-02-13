@@ -517,11 +517,39 @@ router.post('/get_list_suggested_friends', verify, async (req, res) => {
               user_id: y.friend._id,
               username: (y.friend.name) ? y.friend.name : null,
               avatar: (y.friend.avatar) ? y.friend.avatar.url : null,
-              same_friends: 0
+              same_friends: 0,
+              is_friend: 0
             }
+            // check block
+            let user = await User.findById(e.user_id)
+            console.log(e.user_id)
+            // neu no chan minh
+            let index0 = user.blockedList.findIndex(element => element.user._id.equals(thisUser._id));
+            if (index0 >= 0) continue
+            // neu minh chan no
+            let index1 = thisUser.blockedList.findIndex(element => element.user._id.equals(user._id));
+            if (index1 >= 0) continue
+            // la ban hay chua
+            let indexExist = user.friends.findIndex(element => element.friend._id.equals(thisUser._id));
+            let is_friend0 = (indexExist >= 0) ? 3 : 0;
+            if (is_friend0 == 3) continue
+            // mình gửi lời mời
+            let indexRequestSent = user.friendRequestReceived.findIndex(element => element.fromUser._id.equals(thisUser._id))
+            let is_friend1 = (indexRequestSent >= 0) ? 1 : 0
+            if (is_friend1 == 1) continue
             // bo qua ban than
             if (e.user_id == id) continue
+            // mình nhận lời mời
+            let requestSent = thisUser.friendRequestReceived.findIndex(element => element.fromUser._id.equals(user._id))
+            let userSent = (requestSent >= 0) ? 2 : 0
+            if (userSent == 2) continue //e.is_friend = 2
 
+            console.log("get in 1 1")
+
+            if (thisUser.friends.length > 0 && y.friends.length > 0) {
+              e.same_friends = countSameFriend(thisUser.friends, y.friends);
+            }
+            console.log("get in 1 2")
             if (thisUser.friends.length > 0 && y.friend.friends.length > 0) {
               e.same_friends = countSameFriend(thisUser.friends, y.friend.friends);
             }
@@ -541,7 +569,8 @@ router.post('/get_list_suggested_friends', verify, async (req, res) => {
           user_id: y._id,
           username: y.name,
           avatar: (y.avatar) ? y.avatar.url : null,
-          same_friends: 0
+          same_friends: 0,
+          is_friend: 0
         }
         // check block
         let user = await User.findById(e.user_id)
@@ -556,11 +585,16 @@ router.post('/get_list_suggested_friends', verify, async (req, res) => {
         let is_friend0 = (indexExist >= 0) ? 3 : 0;
         if (is_friend0 == 3) continue
         // mình gửi lời mời
-        let indexRequestSent = thisUser.friendRequestReceived.findIndex(element => element.fromUser._id.equals(user._id))
+        let indexRequestSent = user.friendRequestReceived.findIndex(element => element.fromUser._id.equals(thisUser._id))
         let is_friend1 = (indexRequestSent >= 0) ? 1 : 0
         if (is_friend1 == 1) continue
+        // mình nhận lời mời
+        let requestSent = thisUser.friendRequestReceived.findIndex(element => element.fromUser._id.equals(user._id))
+        let userSent = (requestSent >= 0) ? 2 : 0
+        if (userSent == 2) continue // e.is_friend = 2
         // bo qua ban than
         if (e.user_id == id) continue
+
         if (thisUser.friends.length > 0 && y.friends.length > 0) {
           e.same_friends = countSameFriend(thisUser.friends, y.friends);
         }
