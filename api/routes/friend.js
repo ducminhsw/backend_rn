@@ -512,13 +512,16 @@ router.post('/get_list_suggested_friends', verify, async (req, res) => {
         if (!targetUser) return callRes(res, responseError.NO_DATA_OR_END_OF_LIST_DATA, 'targetUser');
         await targetUser.populate({ path: 'friends.friend', select: 'friends _id name avatar' }).execPopulate();
         for (let y of targetUser.friends) {
-          if (!y.friend._id.equals(id) && !listID.includes(y.friend._id)) {
+          if (!y.friend._id.equals(thisUser._id) && !listID.includes(y.friend._id)) {
             let e = {
               user_id: y.friend._id,
               username: (y.friend.name) ? y.friend.name : null,
               avatar: (y.friend.avatar) ? y.friend.avatar.url : null,
               same_friends: 0
             }
+            // bo qua ban than
+            if (e.user_id == id) continue
+
             if (thisUser.friends.length > 0 && y.friend.friends.length > 0) {
               e.same_friends = countSameFriend(thisUser.friends, y.friend.friends);
             }
@@ -540,6 +543,24 @@ router.post('/get_list_suggested_friends', verify, async (req, res) => {
           avatar: (y.avatar) ? y.avatar.url : null,
           same_friends: 0
         }
+        // check block
+        let user = await User.findById(e.user_id)
+        // neu no chan minh
+        let index0 = user.blockedList.findIndex(element => element.user._id.equals(thisUser._id));
+        if (index0 >= 0) continue
+        // neu minh chan no
+        let index1 = thisUser.blockedList.findIndex(element => element.user._id.equals(user._id));
+        if (index1 >= 0) continue
+        // la ban hay chua
+        let indexExist = user.friends.findIndex(element => element.friend._id.equals(thisUser._id));
+        let is_friend0 = (indexExist >= 0) ? 3 : 0;
+        if (is_friend0 == 3) continue
+        // mình gửi lời mời
+        let indexRequestSent = thisUser.friendRequestReceived.findIndex(element => element.fromUser._id.equals(user._id))
+        let is_friend1 = (indexRequestSent >= 0) ? 1 : 0
+        if (is_friend1 == 1) continue
+        // bo qua ban than
+        if (e.user_id == id) continue
         if (thisUser.friends.length > 0 && y.friends.length > 0) {
           e.same_friends = countSameFriend(thisUser.friends, y.friends);
         }

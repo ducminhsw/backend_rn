@@ -18,8 +18,10 @@ router.post('/like', verify, async (req, res) => {
     }
     var post;
     try {
+        // console.log("You are liking")
         post = await Post.findById(id);
     } catch (err) {
+        console.log(err)
         if(err.kind == "ObjectId") {
             console.log("Sai id");
             return setAndSendResponse(res, responseError.POST_IS_NOT_EXISTED);
@@ -37,7 +39,6 @@ router.post('/like', verify, async (req, res) => {
             post.likedUser.splice(index, 1);
         } else {
             post.likedUser.push(user._id);
-            // console.log(post.likedUser)
         }
     } else {
         post.likedUser = [user._id];
@@ -51,6 +52,7 @@ router.post('/like', verify, async (req, res) => {
                 like: updatedPost.likedUser.length.toString()
             }
         });
+        // console.log("success like/unlike")
     } catch (err) {
         console.log(err);
         return setAndSendResponse(res, responseError.CAN_NOT_CONNECT_TO_DB);
