@@ -265,16 +265,6 @@ router.post("/set_block", verify, async (req, res) => {
   }
 });
 
-// @route  POST it4788/friend/set_accept_friend
-// @access Public
-// Example: Use Postman
-// URL: http://127.0.0.1:5000/it4788/friend/set_accept_friend
-// BODY:
-// {
-//   "token": "xxxxx",
-//   "user_id" : "gh98082",
-//   "is_accept": 0,
-// }
 router.post('/set_accept_friend', verify, async (req, res) => {
   let thisUser, sentUser;
 
@@ -347,7 +337,6 @@ router.post('/set_accept_friend', verify, async (req, res) => {
   }
 })
 
-
 router.post("/get_list_blocks", verify, async (req, res) => {
   let { index, count } = req.query;
   if (index === undefined || count === undefined) {
@@ -383,7 +372,6 @@ router.post("/get_list_blocks", verify, async (req, res) => {
   if (thisUser.isBlocked) {
     return callRes(res, responseError.USER_IS_NOT_VALIDATED, 'Your account has been blocked');
   }
-  let code, message;
   let data = [];
   let targetUser;
   targetUser = await User.findById(id);

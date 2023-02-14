@@ -70,6 +70,11 @@ io.on("connection", (socket) => {
         socket.to(data.room).emit("receive_message", data)
     })
 
+    socket.on("delete_message", (data) => {
+        console.log(data)
+        socket.to(data.room).emit("receiver_delete", data)
+    })
+
     socket.on("disconnect", () => {
         console.log("User disconnected", socket.id)
     })
