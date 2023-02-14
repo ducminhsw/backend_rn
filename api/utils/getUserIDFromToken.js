@@ -20,17 +20,18 @@ module.exports.getUserIDFromToken = async function(token) {
         }
         if (user.isBlocked == true)  
           return 'NOT_ACCESS';
-        if (user && user.dateLogin) {
-            var date = new Date(verified.dateLogin);
-            if (user.dateLogin.getTime() == date.getTime())
-            {
-                return user;
-            } else {
-                return 'TOKEN_IS_INVALID';
-            }
-        } else {
-            return 'TOKEN_IS_INVALID';
-        }
+        return user;
+        // if (user && user.dateLogin) {
+        //     var date = new Date(verified.dateLogin);
+        //     if (user.dateLogin.getTime() == date.getTime())
+        //     {
+        //         return user;
+        //     } else {
+        //         return 'TOKEN_IS_INVALID';
+        //     }
+        // } else {
+        //     return 'TOKEN_IS_INVALID';
+        // }
     } catch (err) {
         return 'TOKEN_IS_INVALID';
     }

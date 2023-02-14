@@ -10,7 +10,7 @@ const { Storage } = require("@google-cloud/storage");
 const { bucket } = require("./firebase");
 var { responseError, setAndSendResponse } = require("../response/error");
 const { LikeDisplay } = require("../utils/LikeDisplay");
-const {TimeDisplay}= require("../utils/TimeDisplay")
+const { TimeDisplay } = require("../utils/TimeDisplay");
 const validInput = require("../utils/validInput");
 const MAX_IMAGE_NUMBER = 4;
 const MAX_SIZE_IMAGE = 4 * 1024 * 1024; // for 4MB
@@ -339,7 +339,6 @@ router.post("/get_list_posts", async (req, res) => {
     console.log("No have parameter index, count");
     return setAndSendResponse(res, responseError.PARAMETER_IS_NOT_ENOUGH);
   }
-
   // PARAMETER_TYPE_IS_INVALID
   if (
     (index && typeof index !== "string") ||
@@ -374,6 +373,12 @@ router.post("/get_list_posts", async (req, res) => {
     posts = await Post.find().populate("author").sort("-created");
   } catch (err) {
     return setAndSendResponse(res, responseError.CAN_NOT_CONNECT_TO_DB);
+  }
+
+  // NO_DATA_OR_END_OF_LIST_DATA
+  if (posts.length < 1) {
+    console.log("No have posts");
+    return setAndSendResponse(res, responseError.NO_DATA_OR_END_OF_LIST_DATA);
   }
 
   let index_last_id = posts.findIndex((element) => {
@@ -432,7 +437,7 @@ router.post("/get_list_posts", async (req, res) => {
         self_liked: self_liked.toString(),
         comment: post.comments.length.toString(),
         numLike: post.likedUser.length.toString(),
-        samePer: (post.author._id).equals(user._id),
+        samePer: post.author._id.equals(user._id),
       };
     }),
     new_items: index_last_id.toString(),
@@ -584,7 +589,7 @@ router.post("/get_post", async (req, res) => {
           described: post.described ? post.described : null,
           created: TimeDisplay(post.created),
           modified: post.modified.toString(),
-          is_liked: is_liked.toString(),
+          is_liked: is_liked,
           is_blocked: is_blocked(user, post.author),
           can_comment: "1",
           can_edit: can_edit(user, post.author),
@@ -598,9 +603,9 @@ router.post("/get_post", async (req, res) => {
             : null,
           like: likeDisplay,
           comment: post.comments.length.toString(),
-          self_liked: self_liked.toString(),
-          numLike: post.likedUser.length.toString(),
-          samePer: (post.author._id).equals(user._id),
+          self_liked: self_liked,
+          numLike: post.likedUser.length,
+          samePer: post.author._id.equals(user._id),
         },
       });
     } else {
@@ -847,10 +852,8 @@ EXCEPTION_ERROR khi khong xoa duoc anh, video
 CAN_NOT_CONNECT_TO_DB khi khong xoa duoc post trong csdl
 Da delete ca comment di kem
 */
-router.post("/delete_post", verify, async (req, res) => {
+router.post("/delete_post", async (req, res) => {
   var { id } = req.query;
-  var user = req.user;
-
   // PARAMETER_IS_NOT_ENOUGH
   if (id !== 0 && !id) {
     console.log("No have parameter id");
@@ -879,12 +882,6 @@ router.post("/delete_post", verify, async (req, res) => {
     console.log("Post is not existed");
     return setAndSendResponse(res, responseError.POST_IS_NOT_EXISTED);
   }
-
-  if (post.author != user.id) {
-    console.log("Not Access");
-    return setAndSendResponse(res, responseError.NOT_ACCESS);
-  }
-
   if (post.image.length > 0) {
     for (let image of post.image) {
       try {
@@ -951,7 +948,7 @@ UPLOAD_FILE_FAILED neu upload image va video that bai
 MAXIMUM_NUMBER_OF_IMAGES
 MAX_WORD_POST cua described
 */
-router.post("/edit_post", cpUpload, verify, async (req, res) => {
+router.post("/edit_post", cpUpload, async (req, res) => {
   var {
     id,
     status,
@@ -966,8 +963,6 @@ router.post("/edit_post", cpUpload, verify, async (req, res) => {
     image = req.files.image;
     video = req.files.video;
   }
-  var user = req.user;
-
   if (image_del) {
     try {
       image_del = JSON.parse(image_del);
@@ -1037,12 +1032,6 @@ router.post("/edit_post", cpUpload, verify, async (req, res) => {
     console.log("Post is not existed");
     return setAndSendResponse(res, responseError.POST_IS_NOT_EXISTED);
   }
-
-  if (post.author != user.id) {
-    console.log("Not Access");
-    return setAndSendResponse(res, responseError.NOT_ACCESS);
-  }
-
   // Check gia tri image_del hop le
   if (image_del && image_del.length > 0) {
     for (const id_image_del of image_del) {
@@ -1129,7 +1118,7 @@ router.post("/edit_post", cpUpload, verify, async (req, res) => {
       return setAndSendResponse(res, responseError.UPLOAD_FILE_FAILED);
     }
   }
-
+  post.image = [];
   if (image && !video) {
     if (post.video.url) {
       console.log("Have image and video up anh");
@@ -1164,9 +1153,7 @@ router.post("/edit_post", cpUpload, verify, async (req, res) => {
 
     try {
       file = await Promise.all(promises);
-      for (let file_item of file) {
-        post.image.push(file_item);
-      }
+      post.image=file;
     } catch (err) {
       console.log("Upload fail");
       return setAndSendResponse(res, responseError.UPLOAD_FILE_FAILED);
